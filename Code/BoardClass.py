@@ -4,6 +4,13 @@ class BoardClass:
         self.columns = columns  # and columns, will be useful later
         self.slots = [[0] * columns for _ in range(rows)]  # Initialize all slots as empty
 
-    def __print__(self):  # Simple method to print the board without writing a loop each time
-        for slot in self.slots:
-            print(slot)
+        def __print__(self):  # Simple method to print the board
+        for row in self.slots:
+            for element in row:
+                if element == 0:
+                    print("[ ]", end='')
+                elif element == 1:
+                    print("[X]", end='')
+                elif element == 2:
+                    print("[O]", end='')
+            print()
