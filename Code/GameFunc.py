@@ -32,7 +32,7 @@ def __possibleVictories(board, currentPlayer):
 
     while column < board.columns: # For every column of our board
         row = board.rows - 1 # Start at the bottom row
-        while row > 0:
+        while row >= 0:
             if board.slots[row][column] != currentPlayer:
                 i = 0
                 while row - i >= 0 and (
@@ -103,28 +103,89 @@ def __moveGenerator(board, turn, depth=2):
     return best_heuristic  # We propagate the final heuristic
 
 
+def __movesUntilVictory(board, row, column, analysis):
+    moves = 4
+    i = 0
+    if analysis == 1:
+         while moves > 1 and row - i >= 0 and board.slots[row - i][column] == 1:
+            i += 1
+            moves -= 1
+
+    elif analysis == 2:
+        while moves > 1 and column + i < board.columns and board.slots[row][column + i] == 1:
+            i += 1
+            moves -= 1
+    
+    elif analysis == 3:
+        while moves > 1 and row - i >= 0 and column + i < board.columns and board.slots[row - i][column + i] == 1 and board.slots[row - i - 1][column - i] != 0:
+            i += 1
+            moves -= 1
+    
+    elif analysis == 4:
+        while moves > 1 and row - i >= 0 and column - i >= 0 and board.slots[row - i][column - i] == 1 and board.slots[row - i - 1][column - i] != 0:
+            i += 1
+            moves -= 1
+
+    return moves
+
+def __avoidLoss(avoid_loss):
+    moves = int()
+    column = 0
+    row = avoid_loss.rows - 1
+    res = False
+
+    while column < avoid_loss.columns: # For every column of our board
+        row = avoid_loss.rows - 1 # Start at the bottom row
+        while row > 0:
+            if avoid_loss.slots[row][column] == 1:
+                moves = __movesUntilVictory(avoid_loss, row, column, 1)
+                if moves <= 1: # If there are 3 in vertical and an empty
+                    avoid_loss.slots[row - 3][column] = 2 # it's a possible victory
+                    res = True
+
+                moves = __movesUntilVictory(avoid_loss, row, column, 2)
+                if moves <= 1: # If there are 3 in horizontal and an empty
+                    avoid_loss.slots[row][column + 3] = 2 # it's a possible victory
+                    res = True
+
+                moves = __movesUntilVictory(avoid_loss, row, column, 3)
+                if moves <= 1: # If there are 3 in diagonal right
+                    avoid_loss.slots[row - 3][column + 3]  # it's a possible victory
+                    res = True
+
+                moves = __movesUntilVictory(avoid_loss, row, column, 4)
+                if moves <= 1: # If there are 3 in diagonal left
+                    avoid_loss.slots[row - 3][column - 3]# it's a possible victory
+                    res = True
+            row -= 1
+        column += 1    
+
+    return res
+
 def miniMaxMove(board, depth=2):
     print('Computer Turn: ')
     best_heuristic = int()  # Best heuristic value
     turn = 0
     best_state = copy.deepcopy(board)  # Best move according to analysis
-    column = 0  # Current column
-    while column < board.columns:  # While there are unvisited columns
-        done = -1  # We only want to check the move that gravity allows
-        row = board.rows - 1  # Start at the bottom of the column
-        while row >= 0 and done == -1 and turn < depth:  # there are slots in the column and we haven't reached depth
-            if board.slots[row][column] == 0:  # If they are empty
-                board.slots[row][column] = 2  # We make the move
-                heuristic = __moveGenerator(board=board, turn=turn + 1,
-                                depth=depth)  # We analyse the best outcome out of the move we made
-                heuristic += __heuristicCalc(board)  # in consecutive moves assuming minimax frame
-                if heuristic >= best_heuristic:  # If we find a better outcome than our best yet
-                    best_heuristic = heuristic  # we assign it as our solution
-                    best_state = copy.deepcopy(board)  # copy the board to an aux var so we don't alter it
-                board.slots[row][column] = 0  # We undo the move to continue analysis
-                done = 0  # We check the gravity marker so we don't break physics
-            row -= 1  # We move up a row
-        column += 1  # We move up a column
+    loss_prevented = __avoidLoss(board, best_state) # We avoid a possible loss
+
+    if not loss_prevented:
+        column = 0  # Current column
+        while column < board.columns:  # While there are unvisited columns
+            done = -1  # We only want to check the move that gravity allows
+            row = board.rows - 1  # Start at the bottom of the column
+            while row >= 0 and done == -1 and turn < depth:  # there are slots in the column and we haven't reached depth
+                if board.slots[row][column] == 0:  # If they are empty
+                    board.slots[row][column] = 2  # We make the move
+                    heuristic = __moveGenerator(board=board, turn=turn + 1, depth=depth)  # We analyse the best outcome out of the move we made
+                    heuristic += __heuristicCalc(board)  # in consecutive moves assuming minimax frame
+                    if heuristic >= best_heuristic:  # If we find a better outcome than our best yet
+                        best_heuristic = heuristic  # we assign it as our solution
+                        best_state = copy.deepcopy(board)  # copy the board to an aux var so we don't alter it
+                    board.slots[row][column] = 0  # We undo the move to continue analysis
+                    done = 0  # We check the gravity marker so we don't break physics
+                row -= 1  # We move up a row
+            column += 1  # We move up a column
 
     return best_state  # We set the board as our best case scenario
 
@@ -142,7 +203,7 @@ def victoryCheck(board, currentPlayer): # Practically identical to possibleVicto
 
     while column < board.columns and res == 0: # For every column
         row = board.rows - 1
-        while row > 0 and res == 0: # We check every row
+        while row >= 0 and res == 0: # We check every row
             i = 0
             while row - i >= 0 and board.slots[row - i][column] == currentPlayer: # That has a currentPlayer piece
                 i += 1
