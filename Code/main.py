@@ -1,7 +1,6 @@
 import BoardClass
 import GameFunc
 
-
 def game(board):
     victory = 0
     turn = 0

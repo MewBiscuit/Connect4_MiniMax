@@ -112,17 +112,17 @@ def __movesUntilVictory(board, row, column, analysis):
             moves -= 1
 
     elif analysis == 2:
-        while moves > 1 and column + i < board.columns and board.slots[row][column + i] == 1:
+        while moves > 1 and column + i < board.columns and (board.slots[row][column + i] == 1 or (board.slots[row][column + i] == 0 and board.slots[row][column + i + 1] == 1)):
             i += 1
             moves -= 1
     
     elif analysis == 3:
-        while moves > 1 and row - i >= 0 and column + i < board.columns and board.slots[row - i][column + i] == 1 and board.slots[row - i - 1][column - i] != 0:
+        while moves > 1 and row - i >= 0 and column + i < board.columns and board.slots[row - i][column + i] == 1 and board.slots[row - i - 1][column] != 0:
             i += 1
             moves -= 1
     
     elif analysis == 4:
-        while moves > 1 and row - i >= 0 and column - i >= 0 and board.slots[row - i][column - i] == 1 and board.slots[row - i - 1][column - i] != 0:
+        while moves > 1 and row - i >= 0 and column - i >= 0 and board.slots[row - i][column - i] == 1 and board.slots[row - i - 1][column] != 0:
             i += 1
             moves -= 1
 
@@ -134,29 +134,32 @@ def __avoidLoss(avoid_loss):
     row = avoid_loss.rows - 1
     res = False
 
-    while column < avoid_loss.columns: # For every column of our board
+    while column < avoid_loss.columns and not res: # For every column of our board
         row = avoid_loss.rows - 1 # Start at the bottom row
-        while row > 0:
+        while row > 0 and not res:
             if avoid_loss.slots[row][column] == 1:
                 moves = __movesUntilVictory(avoid_loss, row, column, 1)
-                if moves <= 1: # If there are 3 in vertical and an empty
+                if moves <= 1 and avoid_loss.slots[row - 3][column] == 0: # If there are 3 in vertical and an empty
                     avoid_loss.slots[row - 3][column] = 2 # it's a possible victory
                     res = True
 
-                moves = __movesUntilVictory(avoid_loss, row, column, 2)
-                if moves <= 1: # If there are 3 in horizontal and an empty
-                    avoid_loss.slots[row][column + 3] = 2 # it's a possible victory
-                    res = True
+                if not res:    
+                    moves = __movesUntilVictory(avoid_loss, row, column, 2)
+                    if moves <= 1 and avoid_loss.slots[row][column + 3] == 0: # If there are 3 in horizontal and an empty
+                        avoid_loss.slots[row][column + 3] = 2 # it's a possible victory
+                        res = True
 
-                moves = __movesUntilVictory(avoid_loss, row, column, 3)
-                if moves <= 1: # If there are 3 in diagonal right
-                    avoid_loss.slots[row - 3][column + 3]  # it's a possible victory
-                    res = True
-
-                moves = __movesUntilVictory(avoid_loss, row, column, 4)
-                if moves <= 1: # If there are 3 in diagonal left
-                    avoid_loss.slots[row - 3][column - 3]# it's a possible victory
-                    res = True
+                if not res:
+                    moves = __movesUntilVictory(avoid_loss, row, column, 3)
+                    if moves <= 1 and avoid_loss.slots[row - 3][column + 3] == 0: # If there are 3 in diagonal right
+                        avoid_loss.slots[row - 3][column + 3]  # it's a possible victory
+                        res = True
+                
+                if not res:
+                    moves = __movesUntilVictory(avoid_loss, row, column, 4)
+                    if moves <= 1 and avoid_loss.slots[row - 3][column - 3] == 0: # If there are 3 in diagonal left
+                        avoid_loss.slots[row - 3][column - 3]# it's a possible victory
+                        res = True
             row -= 1
         column += 1    
 
@@ -167,8 +170,7 @@ def miniMaxMove(board, depth=2):
     best_heuristic = int()  # Best heuristic value
     turn = 0
     best_state = copy.deepcopy(board)  # Best move according to analysis
-    loss_prevented = __avoidLoss(board, best_state) # We avoid a possible loss
-
+    loss_prevented = __avoidLoss(best_state) # We avoid a possible loss
     if not loss_prevented:
         column = 0  # Current column
         while column < board.columns:  # While there are unvisited columns
